@@ -1,0 +1,8 @@
+# Local: DuckDB. En AWS se cambiaría el adapter (dbt-athena / dbt-glue) sin tocar los modelos SQL.
+prestamos_analytics:
+  target: local
+  outputs:
+    local:
+      type: duckdb
+      path: ../lakehouse/gold.duckdb
+      threads: 4

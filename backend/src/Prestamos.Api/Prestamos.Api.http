@@ -1,0 +1,50 @@
+### Pruebas manuales de la API (extensión REST Client de VS Code o Visual Studio)
+@api = http://localhost:5120
+
+### 1) Login usuario
+# @name loginUsuario
+POST {{api}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "usuario@test.com", "password": "123" }
+
+### 2) Login admin
+# @name loginAdmin
+POST {{api}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "admin@test.com", "password": "123" }
+
+### 3) Usuario solicita préstamo
+POST {{api}}/api/prestamos
+Authorization: Bearer {{loginUsuario.response.body.token}}
+Content-Type: application/json
+
+{ "monto": 5000, "plazoMeses": 12 }
+
+### 4) Usuario consulta sus préstamos (cacheado)
+GET {{api}}/api/prestamos/mios
+Authorization: Bearer {{loginUsuario.response.body.token}}
+
+### 5) Usuario intenta aprobar -> 403
+PATCH {{api}}/api/admin/prestamos/1/aprobar
+Authorization: Bearer {{loginUsuario.response.body.token}}
+
+### 6) Admin lista pendientes
+GET {{api}}/api/admin/prestamos?estado=Pendiente
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 7) Admin aprueba
+PATCH {{api}}/api/admin/prestamos/1/aprobar
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 8) Validación -> 400
+POST {{api}}/api/prestamos
+Authorization: Bearer {{loginUsuario.response.body.token}}
+Content-Type: application/json
+
+{ "monto": 5, "plazoMeses": 500 }
+
+### 9) KPIs del portafolio
+GET {{api}}/api/admin/reportes/resumen
+Authorization: Bearer {{loginAdmin.response.body.token}}

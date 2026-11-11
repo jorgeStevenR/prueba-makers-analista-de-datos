@@ -1,0 +1,62 @@
+version: 2
+
+models:
+  - name: stg_prestamos
+    description: Préstamos limpios provenientes de la capa Silver (Iceberg).
+    columns:
+      - name: prestamo_id
+        tests: [unique, not_null]
+      - name: usuario_id
+        tests: [not_null]
+      - name: monto
+        tests: [not_null]
+      - name: estado
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['pendiente', 'aprobado', 'rechazado']
+
+  - name: stg_historial
+    columns:
+      - name: evento_id
+        tests: [unique, not_null]
+      - name: estado_anterior
+        description: NULL en el evento de creación; 'pendiente' cuando se resuelve.
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['pendiente']
+      - name: estado_nuevo
+        tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ['pendiente', 'aprobado', 'rechazado']
+      - name: prestamo_id
+        tests:
+          - relationships:
+              arguments:
+                to: ref('stg_prestamos')
+                field: prestamo_id
+
+  - name: fct_prestamos_mensual
+    description: KPIs mensuales del portafolio.
+    columns:
+      - name: mes_solicitud
+        tests: [unique, not_null]
+
+  - name: dim_clientes
+    description: Exposición y comportamiento por cliente.
+    columns:
+      - name: usuario_id
+        tests: [unique, not_null]
+      - name: segmento_exposicion
+        tests:
+          - accepted_values:
+              arguments:
+                values: ['alta', 'media', 'baja']
+
+  - name: fct_tiempos_resolucion
+    columns:
+      - name: prestamo_id
+        tests: [unique, not_null]

@@ -1,0 +1,4 @@
+pyspark==4.1.4
+pandas
+dbt-core>=1.10
+dbt-duckdb>=1.10

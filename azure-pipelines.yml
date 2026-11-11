@@ -1,0 +1,64 @@
+# CI/CD en Azure DevOps: compila y prueba backend, frontend y modelos de datos en cada push/PR.
+trigger:
+  branches:
+    include: [main]
+pr:
+  branches:
+    include: [main]
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: CI
+    displayName: Build y pruebas
+    jobs:
+      - job: Backend
+        displayName: API .NET
+        steps:
+          - task: UseDotNet@2
+            inputs:
+              packageType: sdk
+              version: 11.0.x
+          - script: dotnet restore backend/Prestamos.slnx
+            displayName: Restore
+          - script: dotnet build backend/Prestamos.slnx -c Release --no-restore
+            displayName: Build
+          - script: dotnet test backend/Prestamos.slnx -c Release --no-build --logger trx --collect:"XPlat Code Coverage"
+            displayName: Tests (unitarios + integración)
+          - task: PublishTestResults@2
+            condition: always()
+            inputs:
+              testResultsFormat: VSTest
+              testResultsFiles: '**/*.trx'
+          - script: dotnet publish backend/src/Prestamos.Api -c Release -o $(Build.ArtifactStagingDirectory)/api
+            displayName: Publish
+          - publish: $(Build.ArtifactStagingDirectory)/api
+            artifact: api
+
+      - job: Frontend
+        displayName: React
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: 22.x
+          - script: npm ci
+            workingDirectory: frontend
+          - script: npm run build
+            workingDirectory: frontend
+            displayName: Type-check + build
+          - publish: frontend/dist
+            artifact: web
+
+      - job: Datos
+        displayName: Modelos dbt (compilación)
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.12'
+          - script: pip install -r data/requirements.txt
+          - script: dbt parse --project-dir data/dbt --profiles-dir data/dbt
+            displayName: dbt parse (valida SQL y referencias)
+
+  # - stage: CD  → despliegue a AWS (ECS/App Runner para la API, S3+CloudFront para el front,
+  #                Glue Job para el ETL) usando los artefactos publicados arriba.
